@@ -1,0 +1,38 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: mig-demo-cluster
+  region: us-east-1
+  version: "1.26"  
+
+managedNodeGroups:
+  - name: gpu-mig-nodes
+    instanceType: p4d.24xlarge
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 3
+    labels:
+      node-type: gpu-mig
+    amiFamily: AmazonLinux2
+    ssh:
+      allow: true
+      publicKeyName: "SSHKEY"  
+    securityGroups:
+      withShared: true
+      withLocal: true
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ecrPull: true
+        cloudWatch: true
+    preBootstrapCommands:
+      - |
+        #!/bin/bash
+        # Enable MIG mode on the GPU:
+        nvidia-smi -mig 1 || true
+        # Reset the GPU to apply MIG mode:
+        nvidia-smi -r || true
+        # Sleep a few seconds to ensure the GPU reinitializes:
+        sleep 10
+

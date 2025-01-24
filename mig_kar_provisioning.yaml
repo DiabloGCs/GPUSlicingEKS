@@ -1,0 +1,35 @@
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: gpu-mig-provisioner
+spec:
+  requirements:
+    - key: "karpenter.k8s.aws/instance-type"
+      operator: In
+      values:
+        - p4d.24xlarge
+    - key: "kubernetes.io/arch"
+      operator: In
+      values:
+        - amd64
+  provider:
+    subnetSelector:
+      karpenter.sh/discovery: mig-karpenter-demo
+    securityGroupSelector:
+      karpenter.sh/discovery: mig-karpenter-demo
+    tags:
+      Name: "karpenter-mig-gpu"
+    amiFamily: "AL2"  
+    blockDeviceMappings:
+      - deviceName: /dev/xvda
+        ebs:
+          volumeSize: 200
+          volumeType: gp3
+    userData: |
+      #!/bin/bash
+      echo "Enabling MIG mode..."
+      /usr/bin/nvidia-smi -mig 1 || true
+      /usr/bin/nvidia-smi -r || true
+      sleep 10
+  # Tweak TTL as needed
+  ttlSecondsAfterEmpty: 300
